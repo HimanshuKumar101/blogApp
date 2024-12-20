@@ -1,0 +1,61 @@
+//import models
+const Post = require("../models/postModel");
+const Like = require("../models/likeModel");
+
+//like a post
+exports.likePost = async (req, res) => {
+  try {
+    const { post, user } = req.body;
+    const like = new Like({
+      post,
+      user,
+    });
+    const savedLike = await like.save();
+
+    //update the post collection basic on this
+    const updatedPost = await Post.findByIdAndUpdate(
+      post,
+      { $push: { likes: savedLike._id } },
+      { new: true }
+    )
+      .populate("likes")
+      .exec();
+
+    res.json({
+      post: updatedPost,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      error: "Error while fetching post",
+    });
+  }
+};
+
+exports.unlikePost = async (req, res) => {  // Changed the duplicate 'res' to 'req' for request
+    try {
+      const { post, like } = req.body;
+  
+      // Find and delete the like from the Like collection
+      const deletedLike = await Like.findOneAndDelete({ post: post, _id: like });
+  
+      // Update the post collection to remove the like reference
+      const updatedPost = await Post.findByIdAndUpdate(
+        post,
+        { $pull: { likes: deletedLike._id } },  // Use $pull to remove the like
+        { new: true }
+      );
+  
+      res.json({
+        post: updatedPost,
+      });
+    } catch (error) {
+      return res.status(400).json({
+        error: "Error while unliking post",
+      });
+    }
+  };
+  
+
+exports.dummyLink = (req, res) => {
+  res.send("This is your Dummy Page");
+};
